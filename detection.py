@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import tensorflow as tf
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
 
@@ -16,7 +17,7 @@ def main():
 
     # Check command-line arguments
     if len(sys.argv) not in [2, 3]:
-        sys.exit("Usage: python traffic.py data_directory [model.h5]")
+        sys.exit("Usage: python detection.py data_directory [model.h5]")
 
     # Get image arrays and labels for all image files
     images, labels = load_data(sys.argv[1])
@@ -30,11 +31,25 @@ def main():
     )
 
     # Get a compiled neural network
-    model = get_model()
-
+    (pretrained_base, model) = get_model()
     # Fit model on training data
-    model.fit(x_train, y_train, epochs=EPOCHS)
+    model.fit(x_train, y_train, validation_split=0.2, epochs=EPOCHS)
+    pretrained_base.trainable = True
+    # It's important to recompile your model after you make any changes
+    # to the `trainable` attribute of any inner layer, so that your changes
+    # are take into account
 
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-5),
+        loss="binary_crossentropy",
+        metrics=["binary_accuracy"]
+    )  # Very low learning rate
+
+    history = model.fit(x_train, y_train, epochs=EPOCHS, validation_split = 0.2)
+    history_frame = pd.DataFrame(history.history)
+    print(history_frame)
+    history_frame.loc[:, ['loss', 'val_loss']].plot().get_figure().savefig('loss_')
+    history_frame.loc[:, ['binary_accuracy', 'val_binary_accuracy']].plot().get_figure().savefig('accuracy_')
     # Evaluate neural network performance
     model.evaluate(x_test,  y_test, verbose=2)
 
@@ -97,30 +112,43 @@ def get_model():
     `input_shape` of the first layer is `(IMG_WIDTH, IMG_HEIGHT, 3)`.
     The output layer should have `NUM_CATEGORIES` units, one for each category.
     """
+    pretrained_base = tf.keras.applications.EfficientNetB3(
+        include_top=False,
+        pooling='None',
+        input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)
+    )
+    pretrained_base.trainable = False
     model = tf.keras.models.Sequential([
+        pretrained_base,
         tf.keras.layers.Conv2D(
-            32, (9, 9), activation="relu", input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)
+            128, (3, 3), activation="relu", padding='same'
         ),
         tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
         tf.keras.layers.Conv2D(
-            16, (6, 6), activation="relu"
+            256, (3, 3), activation="relu", padding='same'
         ),
         tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(512, activation="relu"),
+        tf.keras.layers.Conv2D(
+            512, (3, 3), activation="relu", padding='same'
+        ),
+        tf.keras.layers.Conv2D(
+            1024, (3, 3), activation="relu", padding='same'
+        ),
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(1024, activation="relu"),
         tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(256, activation="relu"),
+        tf.keras.layers.Dense(1024, activation="relu"),
         tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax")
     ])
 
     # Train neural network
     model.compile(
         optimizer="adam",
-        loss="categorical_crossentropy",
-        metrics=["accuracy"]
+        loss="binary_crossentropy",
+        metrics=["binary_accuracy"]
     )
 
-    return model
+    return (pretrained_base, model)
 
 
 if __name__ == "__main__":
