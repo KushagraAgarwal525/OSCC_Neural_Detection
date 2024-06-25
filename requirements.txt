@@ -1,3 +1,6 @@
 opencv-python-headless
 scikit-learn
 tensorflow
+pandas
+matplotlib
+imblearn
