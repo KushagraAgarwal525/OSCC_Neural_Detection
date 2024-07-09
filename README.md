@@ -50,6 +50,16 @@ python detection.py [data_directory] [model].keras[optional]
 
 *model (optional)*: The name with which you'd like your model to be saved. If not provided, model is not saved after fitting and evaluation.
 
+## Client
+
+To test the pre-trained model on your local machine, follow these steps.
+
+```bash
+cd client
+pip install -r requirements.txt
+python app.py
+```
+After your Flask server is running, go to the */predict* endpoint and you should be ready to test out the model!
 
 
 ## Improvements
@@ -58,4 +68,3 @@ A lot of improvements are being worked on to increase the accuracy and reduce lo
 ## Acknowledgements
 
  [^1]: [Rahman, Tabassum Yesmin (2019), “A histopathological image repository of normal epithelium of Oral Cavity and Oral Squamous Cell Carcinoma”, Mendeley Data, V1, doi: 10.17632/ftmp4cvtmb](https://data.mendeley.com/datasets/ftmp4cvtmb/1).
-
