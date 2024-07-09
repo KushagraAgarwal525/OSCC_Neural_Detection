@@ -1,1 +1,2 @@
 model_shuffled.keras filter=lfs diff=lfs merge=lfs -text
+client/model.keras filter=lfs diff=lfs merge=lfs -text
